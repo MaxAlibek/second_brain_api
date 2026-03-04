@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models.user import User
+from app.db.models import User
 
 # Настройка хеширования пароля
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -4,8 +4,8 @@ from sqlalchemy import select
 
 from app.schemas.user import UserCreate, UserLogin
 from app.services.user_service import create_user, get_user_by_username, verify_password
-from app.db.session import get_db
-from app.db.models.refresh_token import RefreshToken
+from app.db.database import get_db
+from app.db.models import RefreshToken
 from app.core.security import create_access_token, create_refresh_token
 from app.core.config import settings
 from jose import jwt, JWTError
