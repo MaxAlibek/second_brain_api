@@ -2,17 +2,42 @@ version: '3.8'
 
 services:
   postgres:
+    # База данных
     image: postgres:15-alpine
     container_name: second_brain_db
     environment:
-      POSTGRES_USER: second_brain_user
-      POSTGRES_PASSWORD: supersecret
-      POSTGRES_DB: second_brain
+      POSTGRES_USER: ${POSTGRES_USER:-second_brain_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-supersecret}
+      POSTGRES_DB: ${POSTGRES_DB:-second_brain}
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5432:5432"
+      - "5432:5432" # Прокидываем наружу, чтобы ты мог подключаться с компа (DBeaver/DataGrip)
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U second_brain_user -d second_brain"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    # Наш FastAPI бэкенд
+    build: .
+    container_name: second_brain_api
+    ports:
+      - "8000:8000"
+    environment:
+      # Важно: здесь мы меняем HOST с localhost на имя контейнера postgres
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-second_brain_user}:${POSTGRES_PASSWORD:-supersecret}@postgres:5432/${POSTGRES_DB:-second_brain}
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey}
+      - POSTGRES_HOST=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy # Ждем, пока Postgres не станет "здоровым"
+    restart: unless-stopped
+    volumes:
+      - ./app:/app/app # Прокидываем код внутрь (чтобы изменения применялись без пересборки)
 
 volumes:
   postgres_data:
