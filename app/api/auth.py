@@ -28,18 +28,24 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     return new_user
 
 
-@router.post("/login")
-async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
-    db_user = await get_user_by_username(db, user.username)
+from fastapi.security import OAuth2PasswordRequestForm
 
-    if not db_user or not verify_password(user.password, db_user.hashed_password):
+@router.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    db_user = await get_user_by_username(db, form_data.username)
+
+    if not db_user or not verify_password(form_data.password, db_user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     access_token = create_access_token(db_user.id)
     refresh_token = create_refresh_token(db_user.id)
 
+    # Высчитываем дату истечения, чтобы сохранить в БД
+    from datetime import datetime, timedelta
+    expire_date = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+
     # сохраняем refresh токен в БД
-    db_token = RefreshToken(token=refresh_token, user_id=db_user.id)
+    db_token = RefreshToken(token=refresh_token, expires_at=expire_date, user_id=db_user.id)
     db.add(db_token)
     await db.commit()
 
