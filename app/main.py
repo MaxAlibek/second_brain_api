@@ -7,6 +7,10 @@ app = FastAPI(title="Second Brain API")
 # Подключаем роутер авторизации
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
+# Подключаем роутер для заметок (Second Brain)
+from app.api import brain
+app.include_router(brain.router)
+
 # Пример защищенного эндпоинта
 @app.get("/me")
 async def read_me(current_user = Depends(get_current_user)):
