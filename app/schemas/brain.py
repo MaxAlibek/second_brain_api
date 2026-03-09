@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+from app.schemas.tag import TagOut
 
 # =====================================================================
 # СХЕМЫ ДЛЯ "SECOND BRAIN" (ЗАМЕТОК)
@@ -56,6 +57,9 @@ class BrainEntryOut(BrainEntryBase):
     id: int = Field(..., description="Уникальный номер заметки в базе данных")
     created_at: datetime = Field(..., description="Время создания")
     user_id: int = Field(..., description="ID пользователя - владельца заметки")
+    
+    # Список тегов, прикрепленных к этой заметке
+    tags: List[TagOut] = Field(default=[], description="Список прикрепленных тегов")
 
     class Config:
         # Это очень важная настройка! 

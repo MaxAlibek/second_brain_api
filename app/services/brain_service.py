@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
 from app.db.models import BrainEntry
@@ -29,10 +30,10 @@ async def create_brain_entry(db: AsyncSession, user_id: int, note_data: BrainEnt
     # Сохраняем физически в базу
     await db.commit()
     
-    # Обновляем объект, чтобы Postgres присвоил ему ID и created_at
-    await db.refresh(new_entry)
-    
-    return new_entry
+    # Загружаем заново из базы вместе со связанными тегами (решение N+1 проблемы для Pydantic)
+    stmt = select(BrainEntry).options(selectinload(BrainEntry.tags)).where(BrainEntry.id == new_entry.id)
+    result = await db.execute(stmt)
+    return result.scalar_one()
 
 
 async def get_user_entries(db: AsyncSession, user_id: int, skip: int = 0, limit: int = 100) -> List[BrainEntry]:
@@ -41,7 +42,14 @@ async def get_user_entries(db: AsyncSession, user_id: int, skip: int = 0, limit:
     Поддерживает пагинацию через skip (пропустить N) и limit (взять M).
     """
     # Формируем SQL запрос: SELECT * FROM brain_entries WHERE user_id = X
-    stmt = select(BrainEntry).where(BrainEntry.user_id == user_id).offset(skip).limit(limit)
+    # Используем selectinload для жадной загрузки тегов (решение N+1 проблемы)
+    stmt = (
+        select(BrainEntry)
+        .options(selectinload(BrainEntry.tags))
+        .where(BrainEntry.user_id == user_id)
+        .offset(skip)
+        .limit(limit)
+    )
     
     # Выполняем асинхронный запрос
     result = await db.execute(stmt)
@@ -56,7 +64,11 @@ async def get_entry_by_id(db: AsyncSession, entry_id: int, user_id: int) -> Opti
     Важно: мы всегда проверяем user_id, чтобы Вася не смог прочитать 
     секретную заметку Пети, просто угадав её ID в ссылке (например, /brain/10).
     """
-    stmt = select(BrainEntry).where(BrainEntry.id == entry_id, BrainEntry.user_id == user_id)
+    stmt = (
+        select(BrainEntry)
+        .options(selectinload(BrainEntry.tags))
+        .where(BrainEntry.id == entry_id, BrainEntry.user_id == user_id)
+    )
     result = await db.execute(stmt)
     
     # Вернуть одну заметку, или None, если ничего не найдено
@@ -78,9 +90,10 @@ async def update_brain_entry(db: AsyncSession, db_entry: BrainEntry, update_data
         setattr(db_entry, key, value)
         
     await db.commit()
-    await db.refresh(db_entry)
-    
-    return db_entry
+    # Загружаем заново с тегами
+    stmt = select(BrainEntry).options(selectinload(BrainEntry.tags)).where(BrainEntry.id == db_entry.id)
+    result = await db.execute(stmt)
+    return result.scalar_one()
 
 
 async def delete_brain_entry(db: AsyncSession, db_entry: BrainEntry) -> None:

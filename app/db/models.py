@@ -1,6 +1,6 @@
 # app/db/models.py
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -44,6 +44,15 @@ class User(Base):
     # -----------------------------
     brain_entries = relationship(
         "BrainEntry",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    # -----------------------------
+    # Связь: Один User → много Tag
+    # -----------------------------
+    tags = relationship(
+        "Tag",
         back_populates="user",
         cascade="all, delete-orphan"
     )
@@ -103,3 +112,44 @@ class BrainEntry(Base):
 
     # связь обратно к пользователю
     user = relationship("User", back_populates="brain_entries")
+
+    # связь многие-ко-многим с тегами
+    tags = relationship("Tag", secondary="brain_entry_tags", back_populates="brain_entries")
+
+
+# ==========================================================
+# ASSOCIATION TABLE (Многие-ко-многим)
+# ==========================================================
+class BrainEntryTag(Base):
+    """
+    Промежуточная таблица-посредник для связи Заметок и Тегов.
+    """
+
+    __tablename__ = "brain_entry_tags"
+
+    brain_entry_id = Column(Integer, ForeignKey("brain_entries.id", ondelete="CASCADE"), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ==========================================================
+# TAG MODEL
+# ==========================================================
+class Tag(Base):
+    """
+    Модель Тега.
+    """
+
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), index=True, nullable=False)
+    
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='_user_tag_uc'),
+    )
+
+    user = relationship("User", back_populates="tags")
+    brain_entries = relationship("BrainEntry", secondary="brain_entry_tags", back_populates="tags")
