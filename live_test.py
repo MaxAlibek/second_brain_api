@@ -103,7 +103,8 @@ def run_live_test():
     status, response = make_request("POST", "/brain/", data=note_data, headers=headers)
     
     if status == 201:
-        print_success(f"Заметка сохранена! Присвоен ID: {response['id']}")
+        note_id = response['id']
+        print_success(f"Заметка сохранена! Присвоен ID: {note_id}")
         print_info(f"Заголовок: {response['title']}")
         print_info(f"Контент: {response['content']}")
     else:
@@ -119,6 +120,35 @@ def run_live_test():
         print_info(f"Первая заметка в списке: '{response[0]['title']}'")
     else:
         print_error(f"Получение списка не удалось (Код {status}): {response}")
+        return
+
+    # 5. Создание Тега
+    print_step("Создаем новый Тег (Tag)...")
+    tag_data = {
+        "name": f"Авто-Тег-{rand_id}"
+    }
+    status, response = make_request("POST", "/tags/", data=tag_data, headers=headers)
+    
+    if status == 201:
+        tag_id = response['id']
+        print_success(f"Тег создан! Присвоен ID: {tag_id}")
+        print_info(f"Имя тега: '{response['name']}'")
+    else:
+        print_error(f"Создание тега не удалось (Код {status}): {response}")
+        return
+
+    # 6. Прикрепление Тега к Заметке
+    print_step("Прикрепляем созданный Тег к нашей Заметке...")
+    entry_id = note_id
+    status, response = make_request("POST", f"/brain/{entry_id}/tags/{tag_id}", headers=headers)
+    
+    if status == 200:
+        print_success(f"Тег успешно прикреплен к заметке ID {entry_id}!")
+        print_info(f"Теперь у этой заметки тегов: {len(response.get('tags', []))}")
+        if len(response.get('tags', [])) > 0:
+            print_info(f"Первый тег: {response['tags'][0]['name']}")
+    else:
+        print_error(f"Прикрепление тега упало (Код {status}): {response}")
         return
 
     print("\n🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО! API РАБОТАЕТ ИДЕАЛЬНО! 🎉\n")
