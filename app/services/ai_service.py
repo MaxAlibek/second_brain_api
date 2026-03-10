@@ -18,7 +18,7 @@ except Exception as e:
 # We use the supported models for this specific API key
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 # gemini-2.5-flash is free, very fast, and good for general chat/RAG
-CHAT_MODEL = "gemini-1.5-flash" # using 1.5 in case 2.5 is not rolled out for this key
+CHAT_MODEL = "gemini-2.5-flash"
 
 
 def generate_embedding(text: str) -> list[float]:

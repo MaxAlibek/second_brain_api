@@ -56,8 +56,8 @@ async def test_ai_agent():
         
         if res.status_code == 200:
             answer = res.json()['answer']
-            # safely print avoiding charmap errors
-            print(f"\n--- AI ANSWER ---\n{answer.encode('cp1251', 'replace').decode('cp1251')}")
+            sys.stdout.reconfigure(encoding='utf-8')
+            print(f"\n--- AI ANSWER ---\n{answer}")
         else:
             print(f"ERROR: AI Request Failed: {res.text}")
             

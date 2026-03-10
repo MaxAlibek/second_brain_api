@@ -57,6 +57,7 @@ services:
     command: celery -A app.workers.celery_app.celery worker --loglevel=info
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-second_brain_user}:${POSTGRES_PASSWORD:-supersecret}@postgres:5432/${POSTGRES_DB:-second_brain}
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey}
       - REDIS_URL=redis://redis:6379/0
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
