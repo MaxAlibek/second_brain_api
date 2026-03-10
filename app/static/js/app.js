@@ -294,8 +294,13 @@ function closeNoteModal() {
     document.getElementById('note-modal').classList.remove('active');
 }
 
+let isSaving = false; // Защита от двойного нажатия
+
 async function saveNote(e) {
     e.preventDefault();
+    if (isSaving) return; // Если уже сохраняем — игнорируем
+    isSaving = true;
+
     const noteId = document.getElementById('note-id').value;
     const body = {
         title: document.getElementById('note-title').value,
@@ -317,6 +322,7 @@ async function saveNote(e) {
     } else {
         showToast('Ошибка при сохранении', 'error');
     }
+    isSaving = false;
 }
 
 async function deleteNote(noteId) {
