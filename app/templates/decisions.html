@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Brain — Решения</title>
+    <meta name="description" content="Принимай решения математически с помощью взвешенных критериев.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <span class="logo-icon">🧠</span>
+                <h1>Second Brain</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i data-lucide="notebook-pen"></i> Заметки
+                </a>
+                <a href="/chat" class="nav-item">
+                    <i data-lucide="bot"></i> AI Чат
+                </a>
+                <a href="/decisions" class="nav-item active">
+                    <i data-lucide="scale"></i> Решения
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar" id="sidebar-avatar">U</div>
+                    <span id="sidebar-username">User</span>
+                </div>
+                <button class="btn btn-ghost" style="width:100%; margin-top:8px;" onclick="logout()">
+                    <i data-lucide="log-out"></i> Выйти
+                </button>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h2>Механизм решений</h2>
+                    <p>Принимай сложные решения математически</p>
+                </div>
+                <button class="btn btn-primary" onclick="openDecisionModal()">
+                    <i data-lucide="plus"></i> Новое решение
+                </button>
+            </div>
+
+            <div class="cards-grid" id="decisions-grid">
+                <!-- Заполняется через JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== МОДАЛЬНОЕ ОКНО: Создание решения ===== -->
+    <div class="modal-overlay" id="decision-modal">
+        <div class="modal glass">
+            <div class="modal-header">
+                <h3>Новое решение</h3>
+                <button class="btn btn-icon btn-ghost" onclick="closeDecisionModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="decision-form" onsubmit="saveDecision(event)">
+                <div class="form-group">
+                    <label for="dec-title">Название решения</label>
+                    <input type="text" id="dec-title" class="input" placeholder="Какой фреймворк выбрать?" required>
+                </div>
+                <div class="form-group">
+                    <label for="dec-description">Описание (необязательно)</label>
+                    <input type="text" id="dec-description" class="input" placeholder="Контекст для решения">
+                </div>
+                <div class="form-group">
+                    <label for="dec-criteria">Критерии (по одному на строку, формат: Название:Вес)</label>
+                    <textarea id="dec-criteria" class="textarea" placeholder="Скорость:8&#10;Простота:6&#10;Сообщество:7" style="min-height:90px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="dec-options">Варианты (по одному на строку)</label>
+                    <textarea id="dec-options" class="textarea" placeholder="React&#10;Vue&#10;Svelte" style="min-height:90px;"></textarea>
+                </div>
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="closeDecisionModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="check"></i> Создать
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== МОДАЛЬНОЕ ОКНО: Просмотр результатов ===== -->
+    <div class="modal-overlay" id="decision-view-modal">
+        <div class="modal glass" style="max-width:600px;">
+            <div class="modal-header">
+                <h3>Результаты</h3>
+                <button class="btn btn-icon btn-ghost" onclick="closeDecisionView()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div id="decision-view-content">
+                <!-- Заполняется через JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+        initDecisions();
+    </script>
+</body>
+</html>

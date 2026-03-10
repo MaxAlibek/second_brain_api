@@ -1,10 +1,12 @@
 """
 Входная точка нашего FastAPI приложения (Main Entrypoint).
-Здесь мы собираем воедино все роутеры (Мозг, Теги, ИИ, Принятие решений).
+Здесь мы собираем воедино все роутеры (Мозг, Теги, ИИ, Принятие решений, Фронтенд).
 Я постарался сделать структуру модульной, чтобы файл main.py не разрастался до тысяч строк.
 """
 
 from fastapi import FastAPI, Depends
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from app.api import auth  # наш роутер для регистрации и логина
 from app.core.security import get_current_user
 
@@ -14,6 +16,11 @@ app = FastAPI(
     description="Твой личный цифровой ассистент с векторным поиском и ИИ.",
     version="1.0.0"
 )
+
+# ---------------------------------------------------------
+# Статические файлы (CSS, JS)
+# ---------------------------------------------------------
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # ---------------------------------------------------------
 # Подключение роутеров (Маршрутизация)
@@ -35,6 +42,10 @@ app.include_router(decisions.router)
 from app.api import ai
 app.include_router(ai.router)
 
+# Фронтенд: HTML-страницы (Jinja2 SSR)
+from app.api import pages
+app.include_router(pages.router)
+
 
 # ---------------------------------------------------------
 # Тестовые / Утилитные Эндпоинты
@@ -54,5 +65,5 @@ async def read_me(current_user: dict = Depends(get_current_user)):
 
 @app.get("/", tags=["utils"])
 async def root():
-    """ Пинг-понг эндпоинт. Просто убедиться, что сервер живой. """
-    return {"message": "Second Brain API is running and ready to process your thoughts! 🚀"}
+    """Перенаправляем на страницу логина (фронтенд)."""
+    return RedirectResponse(url="/login")

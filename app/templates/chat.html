@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Brain — AI Чат</title>
+    <meta name="description" content="Задай вопрос ИИ и получи ответ из своих заметок.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <span class="logo-icon">🧠</span>
+                <h1>Second Brain</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i data-lucide="notebook-pen"></i> Заметки
+                </a>
+                <a href="/chat" class="nav-item active">
+                    <i data-lucide="bot"></i> AI Чат
+                </a>
+                <a href="/decisions" class="nav-item">
+                    <i data-lucide="scale"></i> Решения
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar" id="sidebar-avatar">U</div>
+                    <span id="sidebar-username">User</span>
+                </div>
+                <button class="btn btn-ghost" style="width:100%; margin-top:8px;" onclick="logout()">
+                    <i data-lucide="log-out"></i> Выйти
+                </button>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT (Чат) ===== -->
+        <main class="main-content" style="padding-bottom:0;">
+            <div class="page-header" style="margin-bottom:16px;">
+                <div>
+                    <h2>AI Ассистент</h2>
+                    <p>Задай вопрос — я найду ответ в твоих заметках</p>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Приветствие от ИИ -->
+                    <div class="message message-ai">
+                        👋 Привет! Я твой личный ИИ-ассистент. Задай мне вопрос, и я поищу ответ в твоих заметках. 
+                        Например: <em>«Какие у меня были идеи для стартапов?»</em>
+                    </div>
+                </div>
+
+                <form class="chat-input-area" id="chat-form">
+                    <input type="text" class="input" id="chat-input" placeholder="Спроси что-нибудь..." autocomplete="off" required>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="send"></i>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+        initChat();
+    </script>
+</body>
+</html>

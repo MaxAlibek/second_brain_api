@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Brain — Заметки</title>
+    <meta name="description" content="Твои личные заметки с ИИ-поиском по смыслу.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <span class="logo-icon">🧠</span>
+                <h1>Second Brain</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item active">
+                    <i data-lucide="notebook-pen"></i> Заметки
+                </a>
+                <a href="/chat" class="nav-item">
+                    <i data-lucide="bot"></i> AI Чат
+                </a>
+                <a href="/decisions" class="nav-item">
+                    <i data-lucide="scale"></i> Решения
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar" id="sidebar-avatar">U</div>
+                    <span id="sidebar-username">User</span>
+                </div>
+                <button class="btn btn-ghost" style="width:100%; margin-top:8px;" onclick="logout()">
+                    <i data-lucide="log-out"></i> Выйти
+                </button>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h2>Мои заметки</h2>
+                    <p>Все твои мысли и идеи в одном месте</p>
+                </div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <div class="search-bar">
+                        <i data-lucide="search"></i>
+                        <input type="text" class="input" id="search-input" placeholder="Поиск...">
+                    </div>
+                    <button class="btn btn-primary" onclick="openNoteModal()">
+                        <i data-lucide="plus"></i> Новая
+                    </button>
+                </div>
+            </div>
+
+            <div class="cards-grid" id="notes-grid">
+                <!-- Заполняется через JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== МОДАЛЬНОЕ ОКНО: Создание / Редактирование заметки ===== -->
+    <div class="modal-overlay" id="note-modal">
+        <div class="modal glass">
+            <div class="modal-header">
+                <h3 id="modal-title">Новая заметка</h3>
+                <button class="btn btn-icon btn-ghost" onclick="closeNoteModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="note-form" onsubmit="saveNote(event)">
+                <input type="hidden" id="note-id">
+                <div class="form-group">
+                    <label for="note-title">Заголовок</label>
+                    <input type="text" id="note-title" class="input" placeholder="О чём думаешь?">
+                </div>
+                <div class="form-group">
+                    <label for="note-content">Содержание</label>
+                    <textarea id="note-content" class="textarea" placeholder="Запиши свою мысль..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="note-category">Категория (необязательно)</label>
+                    <input type="text" id="note-category" class="input" placeholder="Работа, Идеи, Рецепты...">
+                </div>
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="closeNoteModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="save"></i> Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+        initDashboard();
+        initSearch();
+    </script>
+</body>
+</html>

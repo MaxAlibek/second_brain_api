@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Brain — Вход</title>
+    <meta name="description" content="Войдите в свой личный цифровой мозг с ИИ-ассистентом.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="login-page">
+        <div class="login-card glass">
+            <div style="text-align:center; margin-bottom:8px; font-size:2.2rem;">🧠</div>
+            <h1>Second Brain</h1>
+            <p class="subtitle">Твой персональный цифровой ассистент</p>
+
+            <!-- Вкладки: Вход / Регистрация (type=button чтобы не сабмитить форму!) -->
+            <div class="login-tabs">
+                <button type="button" class="login-tab active" data-form="login-section">Вход</button>
+                <button type="button" class="login-tab" data-form="register-section">Регистрация</button>
+            </div>
+
+            <!-- Форма ЛОГИНА -->
+            <form class="login-form active" id="login-section">
+                <div class="form-group">
+                    <label for="login-username">Имя пользователя</label>
+                    <input type="text" id="login-username" class="input" placeholder="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" class="input" placeholder="••••••" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="log-in"></i> Войти
+                </button>
+            </form>
+
+            <!-- Форма РЕГИСТРАЦИИ -->
+            <form class="login-form" id="register-section">
+                <div class="form-group">
+                    <label for="reg-username">Имя пользователя</label>
+                    <input type="text" id="reg-username" class="input" placeholder="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input type="email" id="reg-email" class="input" placeholder="you@example.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Пароль</label>
+                    <input type="password" id="reg-password" class="input" placeholder="••••••" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="user-plus"></i> Зарегистрироваться
+                </button>
+            </form>
+
+            <div id="login-error" class="login-error"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+        initLoginPage();
+    </script>
+</body>
+</html>
