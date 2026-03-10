@@ -8,10 +8,13 @@ app = FastAPI(title="Second Brain API")
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 # Подключаем роутер для заметок (Second Brain) и тегов
-from app.api import brain, tags
+from app.api import brain, tags, decisions
 app.include_router(brain.router)
 app.include_router(tags.router)
 app.include_router(tags.brain_tags_router)
+
+# Подключаем роутер для механизма принятия решений (Decision Engine)
+app.include_router(decisions.router)
 
 # Пример защищенного эндпоинта
 @app.get("/me")

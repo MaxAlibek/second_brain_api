@@ -57,6 +57,15 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    # -----------------------------
+    # Связь: Один User → много Decision
+    # -----------------------------
+    decisions = relationship(
+        "Decision",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
 
 # ==========================================================
 # REFRESH TOKEN MODEL
@@ -153,3 +162,85 @@ class Tag(Base):
 
     user = relationship("User", back_populates="tags")
     brain_entries = relationship("BrainEntry", secondary="brain_entry_tags", back_populates="tags")
+
+
+# ==========================================================
+# PHASE 3: DECISION ENGINE MODELS
+# ==========================================================
+
+class Decision(Base):
+    """
+    Модель Решения. Главный контейнер для вариантов и критериев.
+    """
+    __tablename__ = "decisions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    user = relationship("User", back_populates="decisions")
+    
+    # Каскадное удаление: удалили Решение -> удалились все его Критерии и Варианты
+    criteria = relationship("Criterion", back_populates="decision", cascade="all, delete-orphan")
+    options = relationship("Option", back_populates="decision", cascade="all, delete-orphan")
+
+
+class Criterion(Base):
+    """
+    Критерий оценки для конкретного решения. 
+    weight - важность от 1 до 10.
+    """
+    __tablename__ = "criteria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    weight = Column(Integer, nullable=False, default=5) # Валидация 1-10 будет в схемах Pydantic
+    
+    decision_id = Column(Integer, ForeignKey("decisions.id", ondelete="CASCADE"), nullable=False)
+
+    decision = relationship("Decision", back_populates="criteria")
+    
+    # Каскадное удаление: удалили Критерий -> удалились все поставленные по нему оценки
+    scores = relationship("OptionScore", back_populates="criterion", cascade="all, delete-orphan")
+
+
+class Option(Base):
+    """
+    Вариант выбора внутри Решения.
+    """
+    __tablename__ = "options"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    
+    decision_id = Column(Integer, ForeignKey("decisions.id", ondelete="CASCADE"), nullable=False)
+
+    decision = relationship("Decision", back_populates="options")
+    
+    # Каскадное удаление: удалили Вариант -> удалились все его оценки
+    scores = relationship("OptionScore", back_populates="option", cascade="all, delete-orphan")
+
+
+class OptionScore(Base):
+    """
+    Оценка конкретного варианта по конкретному критерию.
+    score - от 1 до 10.
+    """
+    __tablename__ = "option_scores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    score = Column(Integer, nullable=False) # Валидация 1-10 будет в схемах Pydantic
+    
+    option_id = Column(Integer, ForeignKey("options.id", ondelete="CASCADE"), nullable=False)
+    criterion_id = Column(Integer, ForeignKey("criteria.id", ondelete="CASCADE"), nullable=False)
+
+    # Уникальное ограничение: один вариант может получить только одну оценку по одному критерию
+    __table_args__ = (
+        UniqueConstraint('option_id', 'criterion_id', name='_option_criterion_uc'),
+    )
+
+    option = relationship("Option", back_populates="scores")
+    criterion = relationship("Criterion", back_populates="scores")
