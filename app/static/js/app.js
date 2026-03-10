@@ -368,12 +368,47 @@ function initSearch() {
 // AI CHAT
 // ============================================================
 
+const DEFAULT_CHAT_HTML = `
+    <div class="message message-ai">
+        👋 Привет! Я твой личный ИИ-ассистент. Задай мне вопрос, и я поищу ответ в твоих заметках. 
+        Например: <em>«Какие у меня были идеи для стартапов?»</em>
+    </div>
+`;
+
 async function initChat() {
     if (!requireAuth()) return;
     updateSidebarUser();
 
     const form = document.getElementById('chat-form');
     form?.addEventListener('submit', sendMessage);
+
+    const messages = document.getElementById('chat-messages');
+    if (messages) {
+        const savedChat = localStorage.getItem('chatHistory');
+        if (savedChat) {
+            messages.innerHTML = savedChat;
+            messages.scrollTop = messages.scrollHeight;
+        }
+    }
+}
+
+function saveChatHistory() {
+    const messages = document.getElementById('chat-messages');
+    if (messages) {
+        const clone = messages.cloneNode(true);
+        const typing = clone.querySelector('.typing-indicator');
+        if (typing) typing.remove(); // Не сохраняем индикатор печати
+        localStorage.setItem('chatHistory', clone.innerHTML);
+    }
+}
+
+function clearChat() {
+    if (!confirm('Начать новый чат? Текущая история будет удалена.')) return;
+    localStorage.removeItem('chatHistory');
+    const messages = document.getElementById('chat-messages');
+    if (messages) {
+        messages.innerHTML = DEFAULT_CHAT_HTML;
+    }
 }
 
 async function sendMessage(e) {
@@ -387,6 +422,7 @@ async function sendMessage(e) {
     messages.innerHTML += `<div class="message message-user">${escapeHtml(question)}</div>`;
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
+    saveChatHistory();
 
     // Показываем typing indicator
     const typingEl = document.createElement('div');
@@ -414,6 +450,7 @@ async function sendMessage(e) {
         messages.innerHTML += `<div class="message message-ai">Не удалось связаться с сервером.</div>`;
     }
 
+    saveChatHistory();
     messages.scrollTop = messages.scrollHeight;
 }
 
