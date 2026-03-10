@@ -50,6 +50,8 @@ async function apiFetch(url, options = {}) {
     const token = getToken();
     const headers = {
         'Content-Type': 'application/json',
+        'Bypass-Tunnel-Reminder': 'true',
+        'ngrok-skip-browser-warning': 'true',
         ...(options.headers || {}),
     };
     if (token) {
@@ -148,7 +150,11 @@ function initLoginPage() {
         try {
             const res = await fetch('/auth/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Bypass-Tunnel-Reminder': 'true',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: formData,
             });
             if (!res.ok) {
@@ -180,7 +186,11 @@ function initLoginPage() {
         try {
             const res = await fetch('/auth/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Bypass-Tunnel-Reminder': 'true',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: JSON.stringify(body),
             });
             if (!res.ok) {
@@ -195,7 +205,11 @@ function initLoginPage() {
             formData.append('password', body.password);
             const loginRes = await fetch('/auth/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Bypass-Tunnel-Reminder': 'true',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: formData,
             });
             if (loginRes.ok) {
