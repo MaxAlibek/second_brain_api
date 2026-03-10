@@ -7,6 +7,7 @@ from app.db.models import User
 from app.core.security import get_current_user
 from app.schemas.brain import BrainEntryCreate, BrainEntryUpdate, BrainEntryOut
 from app.services import brain_service
+from app.workers.celery_app import process_note_embedding
 
 # =====================================================================
 # API РОУТЕР ДЛЯ ЗАМЕТОК (ENDPOINTS)
@@ -32,7 +33,12 @@ async def create_entry(
     - `current_user`: Текущий юзер (достается из JWT-токена).
     """
     # Вызываем сервис, передаем ему сессию БД, ID юзера и данные заметки.
-    return await brain_service.create_brain_entry(db, current_user.id, note_data)
+    entry = await brain_service.create_brain_entry(db, current_user.id, note_data)
+    
+    # ТРИГГЕР: Запускаем фоновую задачу Celery для генерации вектора
+    process_note_embedding.delay(entry.id)
+    
+    return entry
 
 
 @router.get("/", response_model=List[BrainEntryOut])
@@ -84,7 +90,12 @@ async def update_entry(
         raise HTTPException(status_code=404, detail="Entry not found")
         
     # Если нашли - обновляем через сервис
-    return await brain_service.update_brain_entry(db, db_entry, update_data)
+    updated_entry = await brain_service.update_brain_entry(db, db_entry, update_data)
+    
+    # ТРИГГЕР: Обновляем вектор в фоне при изменении текста заметки
+    process_note_embedding.delay(updated_entry.id)
+    
+    return updated_entry
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)

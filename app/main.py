@@ -16,6 +16,10 @@ app.include_router(tags.brain_tags_router)
 # Подключаем роутер для механизма принятия решений (Decision Engine)
 app.include_router(decisions.router)
 
+# Подключаем роутер для ИИ Агента (RAG)
+from app.api import ai
+app.include_router(ai.router)
+
 # Пример защищенного эндпоинта
 @app.get("/me")
 async def read_me(current_user = Depends(get_current_user)):

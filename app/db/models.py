@@ -3,6 +3,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from pgvector.sqlalchemy import Vector
 
 from app.db.database import Base
 
@@ -116,8 +117,12 @@ class BrainEntry(Base):
     summary = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Вектор для AI (Gemini text-embedding-004 имеет 768 измерений)
+    embedding = Column(Vector(768), nullable=True)
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     # связь обратно к пользователю
     user = relationship("User", back_populates="brain_entries")

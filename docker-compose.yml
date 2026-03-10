@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   postgres:
-    # База данных
-    image: postgres:15-alpine
+    # База данных с поддержкой Векторного поиска (pgvector)
+    image: pgvector/pgvector:pg15
     container_name: second_brain_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-second_brain_user}
@@ -28,16 +28,45 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Важно: здесь мы меняем HOST с localhost на имя контейнера postgres
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-second_brain_user}:${POSTGRES_PASSWORD:-supersecret}@postgres:5432/${POSTGRES_DB:-second_brain}
       - SECRET_KEY=${SECRET_KEY:-supersecretkey}
       - POSTGRES_HOST=postgres
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy # Ждем, пока Postgres не станет "здоровым"
+      redis:
+        condition: service_started
     restart: unless-stopped
     volumes:
       - ./app:/app/app # Прокидываем код внутрь (чтобы изменения применялись без пересборки)
+      
+  redis:
+    # Брокер сообщений для Celery
+    image: redis:7-alpine
+    container_name: second_brain_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  celery_worker:
+    # Фоновые задачи (Векторизация ИИ)
+    build: .
+    container_name: second_brain_celery
+    command: celery -A app.workers.celery_app.celery worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-second_brain_user}:${POSTGRES_PASSWORD:-supersecret}@postgres:5432/${POSTGRES_DB:-second_brain}
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    volumes:
+      - ./app:/app/app
 
 volumes:
   postgres_data:

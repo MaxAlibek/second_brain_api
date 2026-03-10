@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
+    # Добавлено для ИИ Агента (Фаза 4)
+    GEMINI_API_KEY: Optional[str] = None
+    REDIS_URL: Optional[str] = "redis://localhost:6379/0"
 
     @property
     def get_database_url(self) -> str:
