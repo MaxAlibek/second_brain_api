@@ -386,6 +386,7 @@ input, textarea, select, button {
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -800,13 +801,72 @@ input, textarea, select, button {
 /* ============================================================
    RESPONSIVE (Mobile)
    ============================================================ */
+/* Bottom Navigation (Mobile Only) */
+.bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-top: var(--border-glass);
+    padding: 12px 24px;
+    z-index: 200;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
 @media (max-width: 768px) {
     .sidebar {
-        transform: translateX(-100%);
-        transition: transform var(--transition-slow);
+        display: none; /* Hide desktop sidebar completely */
     }
-    .sidebar.open { transform: translateX(0); }
-    .main-content { margin-left: 0; padding: 16px; }
+    .main-content { 
+        margin-left: 0; 
+        padding: 20px 16px 80px 16px; /* Add bottom padding for nav */
+    }
     .cards-grid { grid-template-columns: 1fr; }
+    
+    /* Show Bottom Nav */
+    .bottom-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .bottom-nav .nav-item {
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 12px;
+        flex: 1;
+        justify-content: center;
+        background: transparent;
+        border: none;
+    }
+    .bottom-nav .nav-item i {
+        width: 24px;
+        height: 24px;
+    }
+    .bottom-nav .nav-item span {
+        font-size: 0.7rem;
+    }
+    /* Mobile Page Header adjustments */
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .page-header > div:last-child {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .search-bar { max-width: 100%; flex: 1; }
+    
+    /* Mobile Chat */
+    .chat-container {
+        height: calc(100vh - 140px); /* Adjust for header + bottom nav */
+    }
     .message { max-width: 85%; }
+    
+    .mobile-only { display: inline-flex !important; }
+    .desktop-only { display: none !important; }
 }
+
+.mobile-only { display: none !important; }

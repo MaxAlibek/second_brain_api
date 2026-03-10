@@ -47,9 +47,15 @@
                     <h2>Механизм решений</h2>
                     <p>Принимай сложные решения математически</p>
                 </div>
-                <button class="btn btn-primary" onclick="openDecisionModal()">
-                    <i data-lucide="plus"></i> Новое решение
-                </button>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button class="btn btn-primary" onclick="openDecisionModal()">
+                        <i data-lucide="plus"></i> <span class="desktop-only">Новое решение</span>
+                    </button>
+                    <!-- Выход для мобилок -->
+                    <button class="btn btn-icon btn-ghost mobile-only" onclick="logout()" title="Выйти">
+                        <i data-lucide="log-out"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="cards-grid" id="decisions-grid">
@@ -108,6 +114,22 @@
             </div>
         </div>
     </div>
+
+    <!-- ===== BOTTOM NAVIGATION (Mobile Only) ===== -->
+    <nav class="bottom-nav">
+        <a href="/dashboard" class="nav-item">
+            <i data-lucide="notebook-pen"></i>
+            <span>Заметки</span>
+        </a>
+        <a href="/chat" class="nav-item">
+            <i data-lucide="bot"></i>
+            <span>ИИ Чат</span>
+        </a>
+        <a href="/decisions" class="nav-item active">
+            <i data-lucide="scale"></i>
+            <span>Решения</span>
+        </a>
+    </nav>
 
     <script src="/static/js/app.js?v=1.2"></script>
     <script>
