@@ -46,8 +46,9 @@ async def _async_generate_and_save_embedding(entry_id: int):
     генерирует вектор через Gemini API и сохраняет его обратно.
     """
     async with AsyncSessionLocal() as db:
-        # Загружаем конкретную заметку по ID
-        stmt = select(BrainEntry).where(BrainEntry.id == entry_id)
+        # Загружаем конкретную заметку по ID, подгружая связанные теги
+        from sqlalchemy.orm import selectinload
+        stmt = select(BrainEntry).options(selectinload(BrainEntry.tags)).where(BrainEntry.id == entry_id)
         result = await db.execute(stmt)
         entry = result.scalar_one_or_none()
 
@@ -55,8 +56,18 @@ async def _async_generate_and_save_embedding(entry_id: int):
             print(f"[Celery] Заметка с ID {entry_id} не найдена в БД. Возможно, была удалена.")
             return
 
-        # Склеиваем заголовок и контент — так вектор будет точнее передавать смысл
-        text_to_embed = f"Title: {entry.title or 'No Title'}\nContent: {entry.content}"
+        # Склеиваем заголовок, категорию, теги и контент — так вектор будет точнее передавать смысл
+        meta_info = []
+        if entry.category:
+            meta_info.append(f"Category: {entry.category}")
+            
+        tags_list = [t.name for t in entry.tags] if getattr(entry, 'tags', None) else []
+        if tags_list:
+            meta_info.append(f"Tags: {', '.join(tags_list)}")
+            
+        meta_prefix = "\n".join(meta_info) + "\n" if meta_info else ""
+        
+        text_to_embed = f"Title: {entry.title or 'No Title'}\n{meta_prefix}Content: {entry.content}"
 
         print(f"[Celery] Генерирую вектор для заметки #{entry_id}...")
         

@@ -27,6 +27,17 @@ function setToken(token) {
     localStorage.setItem('access_token', token);
 }
 
+/** Форматирование даты */
+function formatDate(dateString) {
+    if (!dateString) return '';
+    try {
+        const d = new Date(dateString);
+        return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+        return '';
+    }
+}
+
 /** Удалить JWT (logout) */
 function clearToken() {
     localStorage.removeItem('access_token');
