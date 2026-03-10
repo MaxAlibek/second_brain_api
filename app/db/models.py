@@ -1,4 +1,19 @@
-# app/db/models.py
+"""
+Модели базы данных (SQLAlchemy ORM).
+Это "чертеж" нашей PostgreSQL базы. Каждый класс = одна таблица.
+
+Структура:
+  - User: Пользователь (JWT авторизация, связь со всеми данными).
+  - RefreshToken: Хранение refresh-токенов для безопасного продления сессий.
+  - BrainEntry: Заметка / мысль (ядро Second Brain). Содержит pgvector-колонку для ИИ.
+  - Tag + BrainEntryTag: Теги (многие-ко-многим через промежуточную таблицу).
+  - Decision / Criterion / Option / OptionScore: Механизм принятия решений (Фаза 3).
+
+Важные архитектурные решения:
+  - CASCADE delete везде, чтобы не оставлять мусорные данные после удаления.
+  - UniqueConstraint в OptionScore (один вариант = одна оценка по критерию).
+  - Vector(768) для хранения эмбеддингов Gemini (pgvector).
+"""
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship

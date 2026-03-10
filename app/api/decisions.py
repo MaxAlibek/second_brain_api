@@ -1,3 +1,9 @@
+"""
+Роутер для Механизма принятия решений (Decision Engine).
+Позволяет создавать Решения, добавлять Критерии (с весами), Варианты,
+выставлять Оценки и запускать математический расчет лучшего выбора.
+Использует алгоритм Weighted Scoring: оценка * вес критерия = итоговый балл.
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List

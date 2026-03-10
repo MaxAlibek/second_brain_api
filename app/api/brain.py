@@ -1,3 +1,9 @@
+"""
+Роутер для Заметок / Мыслей (Brain Entries) — сердце "Второго Мозга".
+CRUD: создание, чтение, редактирование, удаление.
+При каждом создании или обновлении заметки автоматически запускается
+фоновая задача Celery для генерации вектора (embedding) через Gemini API.
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List

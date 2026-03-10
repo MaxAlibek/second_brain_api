@@ -1,3 +1,16 @@
+"""
+Модуль безопасности (JWT + OAuth2).
+
+Здесь живут три ключевые функции:
+  - create_access_token() — создает короткоживущий токен для запросов.
+  - create_refresh_token() — создает долгоживущий токен для обновления сессии.
+  - get_current_user() — зависимость (Depends) FastAPI, которая проверяет токен
+    из заголовка Authorization и возвращает текущего пользователя из БД.
+
+Все защищенные эндпоинты используют get_current_user через Depends().
+Если токен невалидный или просрочен — вернется 401 Unauthorized.
+"""
+
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
@@ -10,7 +23,7 @@ from app.db.models import User
 from app.db.models import RefreshToken
 from app.core.config import settings
 
-
+# Указываем FastAPI, откуда брать токен (из формы логина)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 

@@ -1,8 +1,25 @@
+"""
+Сервис интеграции с Google Gemini AI.
+Две основные задачи:
+  1) generate_embedding() — превращает текст в числовой вектор (768 измерений).
+     Вектор потом хранится в PostgreSQL (pgvector) и используется для семантического поиска.
+  2) generate_rag_answer() — получает контекст (найденные заметки) + вопрос юзера,
+     и просит LLM дать ответ строго по контексту. Никаких выдумок.
+
+Модели:
+  - gemini-embedding-001 — для эмбеддингов (бесплатная, быстрая, 768-мерная).
+  - gemini-2.5-flash — для генерации текста (RAG ответы). Одна из самых щедрых бесплатных моделей.
+"""
+
 import os
 from google import genai
 from google.genai import types
 
-# Initialize Gemini Client
+# ---------------------------------------------------------------------------
+# Инициализация клиента Gemini
+# ---------------------------------------------------------------------------
+# Клиент инициализируется один раз при старте приложения.
+# Если ключа нет — не падаем, просто предупреждаем. Эндпоинты вернут 500 при вызове.
 from app.core.config import settings
 
 try:
@@ -12,42 +29,53 @@ try:
         client = genai.Client()
 except Exception as e:
     client = None
-    print(f"Warning: Could not initialize Gemini Client. Missing API key? {e}")
+    print(f"[ai_service] Gemini Client не инициализирован. Проверь GEMINI_API_KEY в .env. Ошибка: {e}")
 
-# We use the recommended models
-# We use the supported models for this specific API key
+# ---------------------------------------------------------------------------
+# Конфигурация моделей
+# ---------------------------------------------------------------------------
+# gemini-embedding-001 генерирует вектора до 3072 измерений, но мы просим 768,
+# чтобы совпадало с размерностью pgvector колонки в БД (Vector(768)).
 EMBEDDING_MODEL = "models/gemini-embedding-001"
-# gemini-2.5-flash is free, very fast, and good for general chat/RAG
+
+# gemini-2.5-flash — бесплатная, быстрая модель для генерации текстовых ответов.
 CHAT_MODEL = "gemini-2.5-flash"
 
 
+# ---------------------------------------------------------------------------
+# Генерация вектора (Embedding)
+# ---------------------------------------------------------------------------
 def generate_embedding(text: str) -> list[float]:
     """
-    Создает Вектор (массив из 768 чисел) для переданного текста, используя Gemini API.
-    Эта функция вызывается синхронно (так как Celery работает синхронно).
+    Преобразует текст в числовой вектор (массив из 768 float-значений).
+    Используется как для заметок (при создании, через Celery), так и для вопросов (при поиске, синхронно).
     """
     if not client:
-        raise ValueError("Gemini Client is not initialized. Check GEMINI_API_KEY.")
+        raise ValueError("Gemini Client не инициализирован. Убедись, что GEMINI_API_KEY задан в .env.")
     
-    # Запрашиваем эмбеддинг
+    # Явно ограничиваем размерность до 768, чтобы совпадать с колонкой в БД
     response = client.models.embed_content(
         model=EMBEDDING_MODEL,
         contents=text,
         config=types.EmbedContentConfig(output_dimensionality=768)
     )
     
-    # Возвращаем массив чисел
     return response.embeddings[0].values
 
 
+# ---------------------------------------------------------------------------
+# Генерация RAG-ответа
+# ---------------------------------------------------------------------------
 def generate_rag_answer(question: str, context: str) -> str:
     """
-    Генерирует умный ответ с помощью RAG (Retrieval-Augmented Generation).
-    ИИ получает строгий системный промпт отвечать ТОЛЬКО по предоставленному контексту.
+    Принимает вопрос пользователя и контекст (склеенные тексты найденных заметок),
+    отправляет всё в Gemini с жёстким системным промптом.
+    LLM обязана отвечать строго по контексту, без фантазий.
     """
     if not client:
-        raise ValueError("Gemini Client is not initialized. Check GEMINI_API_KEY.")
+        raise ValueError("Gemini Client не инициализирован. Убедись, что GEMINI_API_KEY задан в .env.")
 
+    # Системный промпт — ключевая штука. Именно он не дает модели галлюцинировать.
     prompt = f"""
     Ты — умный и полезный ИИ-помощник (Second Brain).
     Пользователь задал вопрос, и система нашла в его личных заметках следующий контекст.

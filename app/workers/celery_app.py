@@ -1,3 +1,20 @@
+"""
+Celery Worker — Фоновый обработчик задач.
+
+Зачем это нужно?
+Когда пользователь создает заметку, нам нужно сходить к Google Gemini API,
+получить вектор (embedding) и сохранить его в БД. Этот процесс занимает 1-3 секунды.
+Если делать это прямо в эндпоинте FastAPI, пользователь будет ждать — неприятно.
+
+Решение: Celery + Redis.
+FastAPI моментально отвечает "201 Created", а в фоне Celery подхватывает задачу
+и спокойно генерирует вектор. Пользователь ничего не замечает.
+
+Нюанс: Celery — синхронный фреймворк, а наша БД — асинхронная (asyncpg).
+Поэтому внутри задачи мы вызываем asyncio.run(), чтобы запустить асинхронную корутину.
+Это безопасно, потому что каждый воркер Celery работает в своем процессе.
+"""
+
 import os
 import asyncio
 from celery import Celery
@@ -5,62 +22,68 @@ from sqlalchemy.future import select
 
 from app.db.database import AsyncSessionLocal
 from app.db.models import BrainEntry
-# Import ai_service from our FastAPI app
 from app.services import ai_service
 
-# Retrieve REDIS_URL from env or use a local default fallback (like when not in docker)
+# ---------------------------------------------------------------------------
+# Конфигурация Celery
+# ---------------------------------------------------------------------------
+# Redis выступает и как брокер (передача задач), и как бэкенд (хранение результатов).
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-# Initialize Celery
 celery = Celery(
     "second_brain_tasks",
     broker=REDIS_URL,
     backend=REDIS_URL
 )
 
+
+# ---------------------------------------------------------------------------
+# Асинхронная логика генерации эмбеддинга
+# ---------------------------------------------------------------------------
 async def _async_generate_and_save_embedding(entry_id: int):
     """
-    Асинхронная корутина. Открывает соединение с БД, достает заметку, 
-    генерирует ей вектор и сохраняет обратно в базу.
+    Ядро фоновой задачи. Открывает соединение с БД, загружает заметку,
+    генерирует вектор через Gemini API и сохраняет его обратно.
     """
     async with AsyncSessionLocal() as db:
-        # Load the entry
+        # Загружаем конкретную заметку по ID
         stmt = select(BrainEntry).where(BrainEntry.id == entry_id)
         result = await db.execute(stmt)
         entry = result.scalar_one_or_none()
 
         if not entry:
-            print(f"Task Failed: BrainEntry with ID {entry_id} not found.")
+            print(f"[Celery] Заметка с ID {entry_id} не найдена в БД. Возможно, была удалена.")
             return
 
-        # Prepare text to embed (we combine Title and Content for better semantic meaning)
+        # Склеиваем заголовок и контент — так вектор будет точнее передавать смысл
         text_to_embed = f"Title: {entry.title or 'No Title'}\nContent: {entry.content}"
 
-        print(f"Generating embedding for Entry {entry_id}...")
+        print(f"[Celery] Генерирую вектор для заметки #{entry_id}...")
         
         try:
-            # Generate the vector array
+            # Вызываем Gemini API (синхронно, но внутри asyncio.run это нормально)
             embedding_vector = ai_service.generate_embedding(text_to_embed)
             
-            # Save it to the database using the pgvector Vector column
-            # Note: SQLAlchemy handles the float array implicitly mapping it to pgvector
+            # Записываем вектор в pgvector-колонку. SQLAlchemy сам сериализует list[float] -> Vector.
             entry.embedding = embedding_vector
             
             await db.commit()
-            print(f"Success: Embedding saved for Entry {entry_id}")
+            print(f"[Celery] Вектор успешно сохранен для заметки #{entry_id}")
             
         except Exception as e:
             await db.rollback()
-            print(f"Task Failed: Could not generate or save embedding. Error: {e}")
+            print(f"[Celery] Ошибка при генерации вектора для заметки #{entry_id}: {e}")
 
 
+# ---------------------------------------------------------------------------
+# Celery Task (точка входа)
+# ---------------------------------------------------------------------------
 @celery.task(name="process_note_embedding")
 def process_note_embedding(entry_id: int):
     """
-    Фоновая задача Celery. 
-    Поскольку Celery воркер - синхронный, мы запускаем асинхронный цикл событий для 
-    выполнения работы в нашей асинхронной базе данных (asyncpg).
+    Публичная задача Celery. Вызывается из FastAPI через .delay(entry_id).
+    Оборачивает асинхронную корутину в asyncio.run() для совместимости.
     """
-    print(f"Celery received task to embed Entry {entry_id}")
+    print(f"[Celery] Получена задача: сгенерировать вектор для заметки #{entry_id}")
     asyncio.run(_async_generate_and_save_embedding(entry_id))
-    return f"Task completed for entry {entry_id}"
+    return f"Embedding generated for entry {entry_id}"

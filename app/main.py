@@ -1,31 +1,50 @@
+"""
+Входная точка нашего FastAPI приложения (Main Entrypoint).
+Здесь мы собираем воедино все роутеры (Мозг, Теги, ИИ, Принятие решений).
+Я постарался сделать структуру модульной, чтобы файл main.py не разрастался до тысяч строк.
+"""
+
 from fastapi import FastAPI, Depends
 from app.api import auth  # наш роутер для регистрации и логина
 from app.core.security import get_current_user
 
-app = FastAPI(title="Second Brain API")
+# Инициализация приложения. Title будет красиво смотреться в Swagger UI (/docs)
+app = FastAPI(
+    title="Second Brain API",
+    description="Твой личный цифровой ассистент с векторным поиском и ИИ.",
+    version="1.0.0"
+)
 
-# Подключаем роутер авторизации
+# ---------------------------------------------------------
+# Подключение роутеров (Маршрутизация)
+# ---------------------------------------------------------
+
+# Авторизация (JWT токены)
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
-# Подключаем роутер для заметок (Second Brain) и тегов
+# Ядро системы (Second Brain): Заметки и Теги
 from app.api import brain, tags, decisions
 app.include_router(brain.router)
 app.include_router(tags.router)
 app.include_router(tags.brain_tags_router)
 
-# Подключаем роутер для механизма принятия решений (Decision Engine)
+# Фича: Механизм принятия решений (Weighted Scoring Engine)
 app.include_router(decisions.router)
 
-# Подключаем роутер для ИИ Агента (RAG)
+# Фича: ИИ Агент (RAG, Векторный поиск)
 from app.api import ai
 app.include_router(ai.router)
 
-# Пример защищенного эндпоинта
-@app.get("/me")
-async def read_me(current_user = Depends(get_current_user)):
+
+# ---------------------------------------------------------
+# Тестовые / Утилитные Эндпоинты
+# ---------------------------------------------------------
+
+@app.get("/me", tags=["utils"])
+async def read_me(current_user: dict = Depends(get_current_user)):
     """
-    Возвращает данные текущего пользователя.
-    Требуется передать Authorization: Bearer <token>
+    Удобный эндпоинт, чтобы проверить "А кто я сейчас?".
+    Требуется передать заголовок Authorization: Bearer <token>.
     """
     return {
         "id": current_user.id,
@@ -33,7 +52,7 @@ async def read_me(current_user = Depends(get_current_user)):
         "email": current_user.email,
     }
 
-# Приветственный эндпоинт
-@app.get("/")
+@app.get("/", tags=["utils"])
 async def root():
-    return {"message": "Second Brain API is running"}
+    """ Пинг-понг эндпоинт. Просто убедиться, что сервер живой. """
+    return {"message": "Second Brain API is running and ready to process your thoughts! 🚀"}

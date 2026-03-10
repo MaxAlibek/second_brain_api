@@ -1,3 +1,9 @@
+"""
+Здесь живет магия RAG (Retrieval-Augmented Generation).
+Это мозг нашего "Второго Мозга" :) 
+Эндпоинт принимает вопрос пользователя, находит релевантные заметки через векторный поиск (pgvector)
+и скармливает их LLM (Gemini), чтобы получить ответ строго по существу. 
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -24,19 +30,23 @@ async def chat_with_second_brain(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    RAG AI Agent. Задает вопрос нейросети, которая ищет ответ ТОЛЬКО Писать по вашим заметкам.
+    Общение с личным ИИ-ассистентом.
+    Внимание: Он не придумывает ответы из интернета, а читает только твои заметки!
     """
     try:
-        # 1. Превращаем вопрос пользователя в вектор
-        # Вызов синхронный, так как API-запрос короткий (лучше вынести в thread pool для highload, но для нас ОК)
+        # ШАГ 1: Превращаем текст вопроса в массив из 768 чисел (Вектор / Эмбеддинг).
+        # Делаем это синхронно под капотом FastAPI. Да, блокирует поток на долю секунды, 
+        # но для пет-проекта и масштабов 1 юзера это абсолютно норм. 
+        # TODO: если будет highload, вынести в run_in_threadpool.
         question_vector = ai_service.generate_embedding(request.question)
         
-        # 2. Ищем Топ-5 самых похожих заметок через pgvector (ORDER BY embedding <-> question_vector)
-        # Обязательно фильтруем по current_user.id (ИЗОЛЯЦИЯ ЮЗЕРОВ)
+        # ШАГ 2: Векторный поиск по БД (Магия pgvector).
+        # Мы ищем Топ-5 записей, которые математически ближе всего к вопросу (косинусное расстояние / L2).
+        # КРИТИЧЕСКИ ВАЖНО: Фильтруем по current_user.id. Никаких утечек чужих секретов! 🛑
         stmt = (
             select(BrainEntry)
             .where(BrainEntry.user_id == current_user.id)
-            .where(BrainEntry.embedding != None)
+            .where(BrainEntry.embedding != None)  # Игнорируем заметки, которые Celery еще не успел обработать
             .order_by(BrainEntry.embedding.l2_distance(question_vector))
             .limit(5)
         )
@@ -44,21 +54,25 @@ async def chat_with_second_brain(
         result = await db.execute(stmt)
         top_entries = result.scalars().all()
         
-        # 3. Собираем тексты заметок в единый контекст
+        # ШАГ 3: Сборка контекста для LLM.
+        # Если заметок нет или они не по теме, честно признаемся.
         if not top_entries:
-            return ChatResponse(answer="Извините, у вас пока нет заметок для анализа или они еще не обработаны ИИ.")
+            return ChatResponse(answer="Извините, я пока не нашел в вашей базе релевантных заметок для ответа.")
             
         context_parts = []
         for entry in top_entries:
+            # Склеиваем всё в один большой кусок текста (Контекст)
             title = entry.title or "Без названия"
             context_parts.append(f"--- ЗАМЕТКА: {title} ---\n{entry.content}\n")
             
         context_text = "\n".join(context_parts)
         
-        # 4. Отправляем в LLM (RAG)
+        # ШАГ 4: Скармливаем контекст в generative модель (Gemini 2.5 Flash).
+        # Просим её ответить на вопрос, опираясь ТОЛЬКО на переданный текст.
         final_answer = ai_service.generate_rag_answer(request.question, context_text)
         
         return ChatResponse(answer=final_answer)
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Ловим все непредвиденные проблемы (например, API ключ отвалился) и отдаем наружу 500 ошибку.
+        raise HTTPException(status_code=500, detail=f"AI Agent Error: {str(e)}")

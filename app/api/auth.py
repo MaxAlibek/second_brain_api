@@ -1,3 +1,14 @@
+"""
+Роутер авторизации.
+Четыре эндпоинта: регистрация, логин, обновление токена и логаут.
+
+Под капотом используем JWT (JSON Web Tokens):
+  - Access Token (живет ~60 минут) — используется для аутентификации запросов.
+  - Refresh Token (живет ~7 дней) — позволяет получить новый Access Token без повторного логина.
+  
+Refresh-токены хранятся в БД, чтобы можно было их отозвать (logout = удаление из БД).
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
