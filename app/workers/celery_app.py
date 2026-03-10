@@ -45,7 +45,17 @@ async def _async_generate_and_save_embedding(entry_id: int):
     Ядро фоновой задачи. Открывает соединение с БД, загружает заметку,
     генерирует вектор через Gemini API и сохраняет его обратно.
     """
-    async with AsyncSessionLocal() as db:
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import NullPool
+    from app.core.config import settings
+
+    # Создаем изолированный движок для каждой задачи, чтобы избежать конфликтов asyncpg
+    # при запуске асинхронного лупа внутри форкнутого процесса Celery.
+    task_engine = create_async_engine(settings.get_database_url, poolclass=NullPool)
+    TaskSessionLocal = sessionmaker(bind=task_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with TaskSessionLocal() as db:
         # Загружаем конкретную заметку по ID, подгружая связанные теги
         from sqlalchemy.orm import selectinload
         stmt = select(BrainEntry).options(selectinload(BrainEntry.tags)).where(BrainEntry.id == entry_id)
